@@ -1,0 +1,72 @@
+import torch
+import torch.nn.functional as F
+from lightning import LightningModule
+from torchmetrics.functional import auroc, recall, precision
+
+
+from .swin_v2 import SwinTransformerV2
+
+
+__all__ = ['get_model', 'ClassificationModule']
+
+
+def get_model(model_name, **kwargs):
+    if model_name == 'swin_v2':
+        return SwinTransformerV2(**kwargs)
+    else:
+        raise ValueError(f"Unknown model name: {model_name}")
+
+
+class ClassificationModule(LightningModule):
+    def __init__(self, model, lr=1e-3, weight_decay=0.01):
+        super().__init__()
+        self.model = model
+        self.optimizer_args = {'lr': lr, 'weight_decay': weight_decay}
+        self.test_ds_prefix = None
+
+    def forward(self, x):
+        return self.model(x)
+
+    def _shared_step(self, batch, stage):
+        img, label = batch
+        pred = self(img).reshape(label.shape)
+        loss = self.loss(pred, label.to(pred.dtype))
+        self.log(f'{stage}_loss', loss, prog_bar=True)
+
+        metrics = self.metrics(pred, label)
+        for m in metrics:
+            self.log(f'{stage}_{m}', metrics[m], prog_bar=True)
+        return loss, pred
+
+    def training_step(self, batch, batch_idx):
+        loss, pred = self._shared_step(batch, 'train')
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        loss, pred = self._shared_step(batch, 'val')
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        stage = 'test' if self.test_ds_prefix is None else f'{self.test_ds_prefix}_test'
+        loss, pred = self._shared_step(batch, stage)
+        return loss
+
+    def configure_optimizers(self):
+        from torch.optim import AdamW
+        from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+        optimizer = AdamW(self.model.parameters(), **self.optimizer_args)
+        cosine_scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=50, eta_min=1e-6)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {"scheduler": cosine_scheduler, "interval": "epoch", "frequency": 1}
+        }
+
+    def loss(self, y_hat, y):
+        return F.cross_entropy(y_hat, y)
+
+    def metrics(self, pred, label):
+        auc = auroc(pred, label, task="binary", num_classes=1)
+        rec = recall(pred, label, task="binary", num_classes=1)
+        prec = precision(pred, label, task="binary", num_classes=1)
+        return {'auc': auc, 'recall': rec, 'precision': prec}
+    

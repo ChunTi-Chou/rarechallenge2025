@@ -1,0 +1,8 @@
+accelerator: 'gpu'
+devices: 1
+max_epochs: 200
+fast_dev_run: false
+
+optimizer:
+    lr: 0.002
+    weight_decay: 0.01

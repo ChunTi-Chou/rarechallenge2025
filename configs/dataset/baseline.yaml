@@ -1,0 +1,37 @@
+split_ratio: 
+    - 0.7
+    - 0.1
+    - 0.2
+batch_size: 16
+num_workers: 8
+persistent_workers: false
+
+preprocessing:
+    resize:
+        size:
+            - 256
+            - 256
+    normalize:
+        mean: 
+            - 0.4967
+            - 0.3012
+            - 0.2157
+        std:
+            - 0.3204
+            - 0.2175
+            - 0.1735
+transforms:
+    vflip:
+        p: 0.3
+    hflip:
+        p: 0.3
+    rotate:
+        degrees: 30
+    colorjitter:
+        brightness: 0.1
+        contrast: 0.0
+        saturation: 0.15
+        hue: 0
+    elastic:
+        alpha: 0.  # 150.
+        sigma: 0.  # 25.

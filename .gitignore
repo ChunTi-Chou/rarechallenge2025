@@ -1,0 +1,7 @@
+# system files
+**.DS_Store
+**__pycache__
+
+# local folders
+lightning-logs
+outputs
