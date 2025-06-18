@@ -29,8 +29,8 @@ class ClassificationModule(LightningModule):
 
     def _shared_step(self, batch, stage):
         img, label = batch
-        pred = self(img).reshape(label.shape)
-        loss = self.loss(pred, label.to(pred.dtype))
+        pred = self(img)
+        loss = self.loss(pred, label)
         self.log(f'{stage}_loss', loss, prog_bar=True)
 
         metrics = self.metrics(pred, label)
@@ -61,12 +61,12 @@ class ClassificationModule(LightningModule):
             "lr_scheduler": {"scheduler": cosine_scheduler, "interval": "epoch", "frequency": 1}
         }
 
-    def loss(self, y_hat, y):
-        return F.cross_entropy(y_hat, y)
+    def loss(self, pred, label):
+        return F.cross_entropy(pred, label)
 
     def metrics(self, pred, label):
-        auc = auroc(pred, label, task="binary", num_classes=1)
-        rec = recall(pred, label, task="binary", num_classes=1)
-        prec = precision(pred, label, task="binary", num_classes=1)
+        auc = auroc(pred, label, task="multiclass", average=None, num_classes=2)[1]
+        rec = recall(pred.argmax(dim=1), label, task="binary")
+        prec = precision(pred.argmax(dim=1), label, task="binary")
         return {'auc': auc, 'recall': rec, 'precision': prec}
     

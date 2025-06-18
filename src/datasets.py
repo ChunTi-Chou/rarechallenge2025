@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from datasets import load_dataset
 import matplotlib.pyplot as plt
 
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 import torchvision.tv_tensors as TVT
 from lightning import LightningDataModule
 
@@ -55,10 +55,17 @@ class Rare25DataModule(LightningDataModule):
         self.preprocessing = preprocessing
         self.train_transform = train_transform
         self.test_transform = test_transform
+        self.train_sampler = None
         self.random_seed = random_seed
     
     def setup(self, stage=None):
         train_index, val_index, test_index = self._split()
+        
+        train_labels = np.array(self.dataset['label'])[train_index]
+        train_labels_weight = train_labels * 9 + 1
+        self.train_sampler = WeightedRandomSampler(train_labels_weight, 
+                                                   num_samples=len(train_index), 
+                                                   replacement=True)
         self.train_ds = Rare25Dataset(self.dataset, train_index,
                                       preprocessing=self.preprocessing,
                                       transform=self.train_transform,
@@ -73,7 +80,8 @@ class Rare25DataModule(LightningDataModule):
                                      )
     
     def train_dataloader(self):
-        return DataLoader(self.train_ds, shuffle=True,
+        return DataLoader(self.train_ds, sampler=self.train_sampler, 
+                          shuffle=True if self.train_sampler is None else False,
                           batch_size=self.batch_size,
                           num_workers=self.num_workers)
     

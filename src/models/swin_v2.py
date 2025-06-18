@@ -662,7 +662,6 @@ class SwinTransformerV2(nn.Module):
     def forward_cls(self, x):
         x = self.forward_features(x)
         x = self.head(x)
-        x = F.sigmoid(x)
         return x
 
     def forward(self, x):

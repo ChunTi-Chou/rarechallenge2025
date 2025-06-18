@@ -7,7 +7,7 @@ defaults:
 
 # additional config
 run_name: 'baseline_swinv2'
-lightning_log_dir: './lightning-logs/rare25/baseline'
+lightning_log_dir: '../lightning-logs/rare25/baseline'
 random_seed: 666
 
 # override config
