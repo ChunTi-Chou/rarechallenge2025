@@ -24,6 +24,9 @@ class ClassificationModule(LightningModule):
         self.optimizer_args = {'lr': lr, 'weight_decay': weight_decay}
         self.test_ds_prefix = None
 
+        self.test_pred = []
+        self.test_label = []
+
     def forward(self, x):
         return self.model(x)
 
@@ -32,10 +35,10 @@ class ClassificationModule(LightningModule):
         pred = self(img)
         loss = self.loss(pred, label)
         self.log(f'{stage}_loss', loss, prog_bar=True)
-
-        metrics = self.metrics(pred, label)
-        for m in metrics:
-            self.log(f'{stage}_{m}', metrics[m], prog_bar=True)
+        if stage != 'test':
+            metrics = self.metrics(pred, label)
+            for m in metrics:
+                self.log(f'{stage}_{m}', metrics[m], prog_bar=True)
         return loss, pred
 
     def training_step(self, batch, batch_idx):
@@ -47,9 +50,21 @@ class ClassificationModule(LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        stage = 'test' if self.test_ds_prefix is None else f'{self.test_ds_prefix}_test'
-        loss, pred = self._shared_step(batch, stage)
+        img, label = batch
+        loss, pred = self._shared_step(batch, 'test')
+        self.test_pred.append(pred)
+        self.test_label.append(label)
         return loss
+
+    def on_test_epoch_end(self):
+        stage = 'test' if self.test_ds_prefix is None else f'{self.test_ds_prefix}_test'
+        metrics = self.metrics(torch.cat(self.test_pred, dim=0), 
+                               torch.cat(self.test_label, dim=0))
+        for m in metrics:
+            self.log(f'{stage}_{m}', metrics[m], on_step=False, on_epoch=True)
+        
+        self.test_pred.clear()
+        self.test_label.clear()
 
     def configure_optimizers(self):
         from torch.optim import AdamW

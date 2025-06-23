@@ -92,7 +92,7 @@ class Rare25DataModule(LightningDataModule):
     
     def test_dataloader(self):
         return DataLoader(self.test_ds, shuffle=False,
-                          batch_size=1,
+                          batch_size=self.batch_size,
                           num_workers=self.num_workers)
     
     def _split(self):
