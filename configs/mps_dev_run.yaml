@@ -1,18 +1,18 @@
 # default config
 defaults:
     - dataset: baseline
-    - model: baseline_swinv2
+    - model: swin_v2
     - training: baseline
     - _self_
 
 # additional config
-run_name: 'baseline_swinv2'
+run_name: 'swin_v2'
 lightning_log_dir: './lightning-logs/rare25/baseline'
 random_seed: 666
 
 # override config
 dataset:
-    batch_size: 8
+    batch_size: 4
     num_workers: 4
 
 training:

@@ -1,9 +1,14 @@
+# to solve the weight download SSL issue
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from lightning import LightningModule
 from torchmetrics.functional import auroc, recall, precision
 
-
+from torchvision.models import efficientnet_b4
 from .swin_v2 import SwinTransformerV2
 
 
@@ -13,6 +18,13 @@ __all__ = ['get_model', 'ClassificationModule']
 def get_model(model_name, **kwargs):
     if model_name == 'swin_v2':
         return SwinTransformerV2(**kwargs)
+    elif model_name == 'efficientnet_b4':
+        model = efficientnet_b4(**kwargs)
+        model.classifier = nn.Sequential(
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=1792, out_features=2, bias=True),
+        )
+        return model
     else:
         raise ValueError(f"Unknown model name: {model_name}")
 
@@ -35,7 +47,7 @@ class ClassificationModule(LightningModule):
         pred = self(img)
         loss = self.loss(pred, label)
         self.log(f'{stage}_loss', loss, prog_bar=True)
-        if stage != 'test':
+        if stage == 'train':
             metrics = self.metrics(pred, label)
             for m in metrics:
                 self.log(f'{stage}_{m}', metrics[m], prog_bar=True)
@@ -46,9 +58,21 @@ class ClassificationModule(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
+        img, label = batch
         loss, pred = self._shared_step(batch, 'val')
+        self.test_pred.append(pred)
+        self.test_label.append(label)
         return loss
-
+    
+    def on_validation_epoch_end(self):
+        metrics = self.metrics(torch.cat(self.test_pred, dim=0), 
+                               torch.cat(self.test_label, dim=0))
+        for m in metrics:
+            self.log(f'val_{m}', metrics[m], on_step=False, on_epoch=True)
+        
+        self.test_pred.clear()
+        self.test_label.clear()
+        
     def test_step(self, batch, batch_idx):
         img, label = batch
         loss, pred = self._shared_step(batch, 'test')

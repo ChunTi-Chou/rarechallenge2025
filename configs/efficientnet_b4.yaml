@@ -1,21 +1,29 @@
 # default config
 defaults:
     - dataset: baseline
-    - model: swin_v2
+    - model: efficientnet_b4
     - training: baseline
     - _self_
 
 # additional config
-run_name: 'swin_v2'
+run_name: 'efficientnet_b4'
 lightning_log_dir: '../lightning-logs/rare25/baseline'
 random_seed: 666
 
 # override config
 dataset:
-    batch_size: 32
+    batch_size: 64
     num_workers: 8
+    preprocessing:
+        resize:
+            size: 
+                - 384
+                - 384
 
 training:
     accelerator: 'gpu'
     devices: 1
-    fast_dev_run: True
+    fast_dev_run: False
+    max_epochs: 300
+    optimizer:
+        lr: 0.0002
