@@ -1,9 +1,14 @@
 # default config
 defaults:
     - dataset: baseline
-    - model: swin_v2
     - training: baseline
     - _self_
+
+model:
+    model_name: 'swin_v2_t'
+    model_args:
+        num_classes: 2
+        weights: 'IMAGENET1K_V1'
 
 # additional config
 run_name: 'swin_v2'
@@ -14,6 +19,11 @@ random_seed: 666
 dataset:
     batch_size: 64
     num_workers: 8
+    preprocessing:
+        resize:
+            size: 
+                - 256
+                - 256
 
 training:
     accelerator: 'gpu'

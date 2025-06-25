@@ -50,7 +50,7 @@ def run_experiment(cfg: DictConfig, logger=None):
     dm.setup()
     
     # prepare model
-    backbone = get_model(cfg.model.name, **cfg.model.model_args)
+    backbone = get_model(cfg.model.model_name, **cfg.model.model_args)
     model = ClassificationModule(backbone, 
                                   lr=cfg.training.optimizer.lr, 
                                   weight_decay=cfg.training.optimizer.weight_decay)
