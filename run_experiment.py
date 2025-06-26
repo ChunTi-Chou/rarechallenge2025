@@ -20,11 +20,13 @@ def run_experiment(cfg: DictConfig, logger=None):
     
     # prepare dataset    
     cfg_preprocessing = cfg.dataset.preprocessing
-    preprocessing = T2.Compose([T2.Resize(**cfg_preprocessing.resize)])
+    preprocessing = None
 
     cfg_transforms = cfg.dataset.transforms
     train_transform = T2.Compose([
         # Geometric Transformations
+        T2.RandomResizedCrop(size=cfg_preprocessing.resize.size, 
+                             **cfg_transforms.random_resized_crop),
         T2.RandomRotation(**cfg_transforms.rotate),
         T2.RandomHorizontalFlip(**cfg_transforms.hflip),
         T2.RandomVerticalFlip(**cfg_transforms.vflip),
@@ -35,8 +37,10 @@ def run_experiment(cfg: DictConfig, logger=None):
         T2.ToDtype(torch.float32, scale=True),
         T2.Normalize(**cfg_preprocessing.normalize)
     ])
+    
     test_transform = T2.Compose([
         # Normalization
+        T2.Resize(**cfg_preprocessing.resize),
         T2.ToDtype(torch.float32, scale=True),
         T2.Normalize(**cfg_preprocessing.normalize)
     ])
@@ -56,7 +60,7 @@ def run_experiment(cfg: DictConfig, logger=None):
                                   weight_decay=cfg.training.optimizer.weight_decay)
     
     # prepare training
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss", save_top_k=1, every_n_epochs=1)
+    checkpoint_callback = ModelCheckpoint(monitor="val_ppv_on_recall90", save_top_k=1, every_n_epochs=1)
     lr_monitor_callback = LearningRateMonitor()
 
     trainer = Trainer(accelerator=cfg.training.accelerator, 

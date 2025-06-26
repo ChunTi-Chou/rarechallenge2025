@@ -21,6 +21,13 @@ preprocessing:
             - 0.2175
             - 0.1735
 transforms:
+    random_resized_crop:
+        scale:
+            - 0.8
+            - 1.0
+        ratio:
+            - 0.9
+            - 1.1
     vflip:
         p: 0.3
     hflip:
