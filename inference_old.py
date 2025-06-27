@@ -60,45 +60,16 @@ def interface_0_handler():
 
     """ Run your model here """
     # for demonstration we will use the timm classification model from the model directory
-    from pathlib import Path
-    from omegaconf import OmegaConf
+    from model.timm_model import TimmClassificationModel
+    print('ResNet50-baseline')
+    model = TimmClassificationModel(
+        model_name="resnet50",
+        num_classes=1,
+        weights=RESOURCE_PATH / "resnet50.pth",
+    )
 
-    import torch
-    import torchvision.tv_tensors as TVT
-    import torchvision.transforms.v2 as T2
+    output_stacked_neoplastic_lesion_likelihoods = model.predict(input_stacked_barretts_esophagus_endoscopy_images)
 
-    from inference import load_image_file_as_array, _show_torch_cuda_info
-    from src.models import get_model, ClassificationModule
-    
-    exp_name = 'swin_v2_t_rrcop_v2'
-    device = 'mps' if torch.backends.mps.is_available() else 'cpu'
-    device = 'cuda' if torch.cuda.is_available() else device
-    
-    print(exp_name, device)
-    cfg = OmegaConf.load(RESOURCE_PATH / f'{exp_name}.yaml')
-    # process the input
-    test_transform = T2.Compose([
-        # Normalization
-        T2.Resize(**cfg.dataset.preprocessing.resize),
-        T2.ToDtype(torch.float32, scale=True),
-        T2.Normalize(**cfg.dataset.preprocessing.normalize)
-    ])
-
-    # load the model
-    my_backbone = get_model(cfg.model.model_name, **cfg.model.model_args)
-    my_model = ClassificationModule(my_backbone, **cfg.training.optimizer)
-    my_model.load_state_dict(torch.load(RESOURCE_PATH / f'{exp_name}.ckpt', map_location=device)['state_dict'])
-    _ = my_model.to(device).eval()
-
-
-    # predict
-    if len(input_stacked_barretts_esophagus_endoscopy_images.shape) == 3:
-        input_stacked_barretts_esophagus_endoscopy_images = input_stacked_barretts_esophagus_endoscopy_images.unsqueeze(0)
-    imgs = TVT.Image(input_stacked_barretts_esophagus_endoscopy_images).permute(0, 3, 1, 2)
-    imgs = test_transform(imgs)
-
-    logits = my_model(imgs)
-    output_stacked_neoplastic_lesion_likelihoods = torch.sigmoid(logits).detach().to('cpu')[:, 1].tolist()
 
     # Save your output
     write_json_file(
