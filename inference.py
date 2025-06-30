@@ -89,18 +89,23 @@ def interface_0_handler():
     my_model.load_state_dict(torch.load(RESOURCE_PATH / f'{exp_name}.ckpt', map_location=device)['state_dict'])
     _ = my_model.to(device).eval()
 
-
     # predict
     if len(input_stacked_barretts_esophagus_endoscopy_images.shape) == 3:
         input_stacked_barretts_esophagus_endoscopy_images = input_stacked_barretts_esophagus_endoscopy_images.unsqueeze(0)
-    imgs = TVT.Image(input_stacked_barretts_esophagus_endoscopy_images).permute(0, 3, 1, 2)
-    imgs = test_transform(imgs)
-    print('preprocess done, input shape:', input_stacked_barretts_esophagus_endoscopy_images.shape)
+    num_imgs = len(input_stacked_barretts_esophagus_endoscopy_images)
+    batch_size = 8
+    num_batchs = num_imgs // batch_size
+    num_batchs = num_batchs + 1 if num_imgs % batch_size != 0 else num_batchs
 
-    logits = my_model(imgs)
-    print('inference done, logits shape:', logits.shape)
-    output_stacked_neoplastic_lesion_likelihoods = torch.sigmoid(logits).detach().to('cpu')[:, 1].tolist()
-    print('postprocess done, length:', len(output_stacked_neoplastic_lesion_likelihoods))
+    output_stacked_neoplastic_lesion_likelihoods = []
+
+    for i in range(num_batchs):
+        batch_imgs = input_stacked_barretts_esophagus_endoscopy_images[i*batch_size: (i + 1)*batch_size]
+        batch_imgs = TVT.Image(batch_imgs).permute(0, 3, 1, 2)
+        batch_imgs = test_transform(batch_imgs).to(device)
+        batch_logits = my_model(batch_imgs)
+        batch_probs = torch.sigmoid(batch_logits).detach().to('cpu')[:, 1].tolist()
+        output_stacked_neoplastic_lesion_likelihoods.extend(batch_probs)
 
     # Save your output
     write_json_file(
