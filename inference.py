@@ -67,7 +67,6 @@ def interface_0_handler():
     import torchvision.tv_tensors as TVT
     import torchvision.transforms.v2 as T2
 
-    from inference import load_image_file_as_array, _show_torch_cuda_info
     from src.models import get_model, ClassificationModule
     
     exp_name = 'swin_v2_t_rrcop_v2'
@@ -85,7 +84,7 @@ def interface_0_handler():
     ])
 
     # load the model
-    my_backbone = get_model(cfg.model.model_name, **cfg.model.model_args)
+    my_backbone = get_model(cfg.model.model_name, num_classes=cfg.model.model_args.num_classes, weights=None)
     my_model = ClassificationModule(my_backbone, **cfg.training.optimizer)
     my_model.load_state_dict(torch.load(RESOURCE_PATH / f'{exp_name}.ckpt', map_location=device)['state_dict'])
     _ = my_model.to(device).eval()
@@ -96,15 +95,19 @@ def interface_0_handler():
         input_stacked_barretts_esophagus_endoscopy_images = input_stacked_barretts_esophagus_endoscopy_images.unsqueeze(0)
     imgs = TVT.Image(input_stacked_barretts_esophagus_endoscopy_images).permute(0, 3, 1, 2)
     imgs = test_transform(imgs)
+    print('preprocess done, input shape:', input_stacked_barretts_esophagus_endoscopy_images.shape)
 
     logits = my_model(imgs)
+    print('inference done, logits shape:', logits.shape)
     output_stacked_neoplastic_lesion_likelihoods = torch.sigmoid(logits).detach().to('cpu')[:, 1].tolist()
+    print('postprocess done, length:', len(output_stacked_neoplastic_lesion_likelihoods))
 
     # Save your output
     write_json_file(
         location=OUTPUT_PATH / "stacked-neoplastic-lesion-likelihoods.json",
         content=output_stacked_neoplastic_lesion_likelihoods,
     )
+    print('save done')
 
     return 0
 
