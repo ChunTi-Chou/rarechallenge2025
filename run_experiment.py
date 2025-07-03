@@ -57,7 +57,9 @@ def run_experiment(cfg: DictConfig, logger=None):
     backbone = get_model(cfg.model.model_name, **cfg.model.model_args)
     model = ClassificationModule(backbone, 
                                   lr=cfg.training.optimizer.lr, 
-                                  weight_decay=cfg.training.optimizer.weight_decay)
+                                  weight_decay=cfg.training.optimizer.weight_decay,
+                                  loss_name=cfg.model.loss_name,
+                                  loss_args=cfg.model.loss_args)
     
     # prepare training
     checkpoint_callback = ModelCheckpoint(monitor="val_ppv_on_recall90", save_top_k=1, every_n_epochs=1)

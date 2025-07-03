@@ -2,12 +2,12 @@
 SimpleITK==2.5.0
 numpy<2
 timm==1.0.15
-torchvision
+torchvision>=0.20
 
 # custom dependencies
 omegaconf==2.3.0
 datasets==3.6.0
 scikit-learn==1.7.0
-torch
-lightning
+torch>=2
+lightning>=2
 

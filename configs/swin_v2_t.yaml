@@ -9,6 +9,8 @@ model:
     model_args:
         num_classes: 2
         weights: 'IMAGENET1K_V1'
+    loss_name: 'cross_entropy'
+    loss_args: {}
 
 # additional config
 run_name: 'swin_v2'
@@ -17,7 +19,7 @@ random_seed: 666
 
 # override config
 dataset:
-    batch_size: 64
+    batch_size: 32
     num_workers: 8
     preprocessing:
         resize:
