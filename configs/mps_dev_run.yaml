@@ -11,8 +11,7 @@ model:
         weights: 'DEFAULT'
     loss_name: 'focal_loss'
     loss_args: 
-        alpha: 0.25
-        gamma: 2.0
+        
 
 # additional config
 run_name: 'mps_dev_run'

@@ -22,7 +22,7 @@ def get_model(model_name, num_classes=2, **kwargs):
                             out_features=num_classes, 
                             bias=True)
         return model
-        
+    
     elif 'efficientnet' in model_name:
         model = eval(f'models.{model_name}')(**kwargs)
         model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features, 
@@ -42,10 +42,20 @@ def get_model(model_name, num_classes=2, **kwargs):
         model.head = nn.Linear(in_features=model.head.in_features, 
                                out_features=num_classes, 
                                bias=True)
+
+        # register forward hook to collect features
+        model.features_buffer = []
+        model._feature_hook_handle = model.flatten.register_forward_hook(get_hook_fn(model))
         return model
     
     else:
         raise ValueError(f"Unknown model name: {model_name}")
+
+
+def get_hook_fn(model):
+    def hook_fn(module, input, output):
+        model.features_buffer.append(output)
+    return hook_fn
 
 
 class ClassificationModule(LightningModule):
@@ -65,9 +75,13 @@ class ClassificationModule(LightningModule):
 
     def _shared_step(self, batch, stage):
         img, label = batch
+        # compute the classification loss
         logits = self(img)
-        loss = self.loss_fn(logits, label)
+        features = torch.cat(self.model.features_buffer, dim=0)
+        loss = self.loss_fn(logits, label, features)
         self.log(f'{stage}_loss', loss, prog_bar=True)
+        self.model.features_buffer.clear()
+
         if stage == 'train':
             metrics = self.metrics(logits, label)
             for m in metrics:

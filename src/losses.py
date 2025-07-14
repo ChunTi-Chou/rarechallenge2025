@@ -9,12 +9,22 @@ import torch.nn.functional as F
 
 def get_loss(loss_name, **loss_args):
     if loss_name == 'cross_entropy':
-        return nn.CrossEntropyLoss(**loss_args)
+        return CrossEntropyLoss(**loss_args)
     if loss_name == 'focal_loss':
         return FocalLoss(**loss_args)
+    elif loss_name == 'contropy_loss':
+        return ContropyLoss(**loss_args)
     else:
         raise ValueError(f"Unknown loss name: {loss_name}")
 
+
+class CrossEntropyLoss(nn.Module):
+    def __init__(self, **kwargs):
+        super(CrossEntropyLoss, self).__init__()
+        self.loss_fn = nn.CrossEntropyLoss(**kwargs)
+    
+    def forward(self, logits: torch.Tensor, labels: torch.Tensor, features: torch.Tensor) -> torch.Tensor:
+        return self.loss_fn(logits, labels)
 
 class FocalLoss(nn.Module):
     """
@@ -28,7 +38,7 @@ class FocalLoss(nn.Module):
         self.alpha = alpha
         self.gamma = gamma
 
-    def forward(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    def forward(self, logits: torch.Tensor, labels: torch.Tensor, features: torch.Tensor) -> torch.Tensor:
         """
         Args:
             logits: Tensor of shape (N, 2) - raw, unnormalized scores for each class
@@ -41,4 +51,26 @@ class FocalLoss(nn.Module):
         focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
         return focal_loss.mean()
 
+
+class ContropyLoss(nn.Module):
+    def __init__(self, margin=0.0):
+        super(ContropyLoss, self).__init__()
+        self.margin = margin
     
+    def forward(self, logits: torch.Tensor, labels: torch.Tensor, features: torch.Tensor) -> torch.Tensor:
+        cn_loss = F.cross_entropy(logits, labels)
+
+        # compute the feature loss
+        # Step 1: Create all pairwise indices (excluding self-pairs)
+        batch_size = features.shape[0]
+        # Get all pairs (i, j) where i != j
+        i_idx = torch.arange(batch_size).repeat_interleave(batch_size-1)
+        j_idx = torch.cat([torch.cat([torch.arange(i), torch.arange(i+1, batch_size)]) for i in range(batch_size)])
+        # Step 2: Gather the pairs
+        x1 = features[i_idx]   # [310*309, 768]
+        x2 = features[j_idx]   # [310*309, 768]
+        # Step 3: Create the target tensor (for example, all 1s if you want to maximize similarity)
+        target = -1 * torch.ones_like(i_idx, dtype=torch.float).to(features.device)
+        contrastive_loss = F.cosine_embedding_loss(x1, x2, target)
+
+        return cn_loss + contrastive_loss
