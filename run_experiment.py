@@ -2,7 +2,8 @@ from omegaconf import DictConfig, OmegaConf
 import hydra
 
 import torch
-import torchvision.transforms.v2 as T2
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
@@ -23,26 +24,31 @@ def run_experiment(cfg: DictConfig, logger=None):
     preprocessing = None
 
     cfg_transforms = cfg.dataset.transforms
-    train_transform = T2.Compose([
+    train_transform = A.Compose([
         # Geometric Transformations
-        T2.RandomResizedCrop(size=cfg_preprocessing.resize.size, 
-                             **cfg_transforms.random_resized_crop),
-        T2.RandomRotation(**cfg_transforms.rotate),
-        T2.RandomHorizontalFlip(**cfg_transforms.hflip),
-        T2.RandomVerticalFlip(**cfg_transforms.vflip),
-        T2.ElasticTransform(**cfg_transforms.elastic),
+        A.RandomResizedCrop(size=cfg_preprocessing.resize.size, **cfg_transforms.get('random_resized_crop', {})),
+        A.GridDistortion(num_steps=5, p=0.5),
+        A.HorizontalFlip(p=0.3),
+        A.VerticalFlip(p=0.3),
+        A.Rotate(limit=60),
         # Color Transformations
-        T2.ColorJitter(**cfg_transforms.colorjitter),
-        # Normalization
-        T2.ToDtype(torch.float32, scale=True),
-        T2.Normalize(**cfg_preprocessing.normalize)
+        A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=20, val_shift_limit=20, p=0.3),
+        # Mask and Blur Transformations
+        A.OneOf([
+            A.Blur(blur_limit=3, p=0.3),
+            A.MedianBlur(blur_limit=3, p=0.3),
+            A.GaussianBlur(blur_limit=3, p=0.3),
+        ], p=0.5),
+        A.GridDropout(ratio=0.3, p=0.3),
+
+        A.Normalize(**cfg_preprocessing.get('normalize', {})),
+        ToTensorV2()
     ])
-    
-    test_transform = T2.Compose([
-        # Normalization
-        T2.Resize(**cfg_preprocessing.resize),
-        T2.ToDtype(torch.float32, scale=True),
-        T2.Normalize(**cfg_preprocessing.normalize)
+
+    test_transform = A.Compose([
+        A.Resize(height=cfg_preprocessing.resize.size[0], width=cfg_preprocessing.resize.size[1]),
+        A.Normalize(**cfg_preprocessing.get('normalize', {})),
+        ToTensorV2()
     ])
 
     dm = Rare25DataModule(preprocessing=preprocessing,

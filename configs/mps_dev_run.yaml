@@ -10,7 +10,7 @@ model:
         num_classes: 2
         weights: 'DEFAULT'
     loss_name: 'focal_loss'
-    loss_args: 
+    loss_args: {}
         
 
 # additional config

@@ -28,17 +28,4 @@ transforms:
         ratio:
             - 0.9
             - 1.1
-    vflip:
-        p: 0.3
-    hflip:
-        p: 0.3
-    rotate:
-        degrees: 30
-    colorjitter:
-        brightness: 0.1
-        contrast: 0.0
-        saturation: 0.15
-        hue: 0
-    elastic:
-        alpha: 0.  # 150.
-        sigma: 0.  # 25.
+

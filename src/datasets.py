@@ -20,12 +20,12 @@ class Rare25Dataset(Dataset):
     
     def __getitem__(self, index):
         # Load image and convert to torch tensor
-        image = TVT.Image(self.dataset[self.idx_list[index]]['image'])
+        image = np.array(self.dataset[self.idx_list[index]]['image'])
         label = self.dataset[self.idx_list[index]]['label']
         if self.preprocessing:
             image = self.preprocessing(image)
         if self.transform:
-            image = self.transform(image)
+            image = self.transform(image=image)['image']
         
         return image, label
     
