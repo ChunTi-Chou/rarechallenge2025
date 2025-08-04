@@ -70,7 +70,8 @@ def run_experiment(cfg: DictConfig, logger=None):
                                   loss_args=cfg.model.loss_args)
     
     # prepare training
-    checkpoint_callback = ModelCheckpoint(monitor="val_ppv_on_recall90", save_top_k=1, every_n_epochs=1)
+    checkpoint_callback = ModelCheckpoint(monitor="val_auprc", mode='max', 
+                                          save_top_k=1, every_n_epochs=1)
     lr_monitor_callback = LearningRateMonitor()
 
     trainer = Trainer(accelerator=cfg.training.accelerator, 
