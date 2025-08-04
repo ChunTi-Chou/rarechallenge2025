@@ -89,6 +89,7 @@ def interface_0_handler():
 
     # load the model
     my_backbone = get_model(cfg.model.model_name, num_classes=cfg.model.model_args.num_classes, weights=None)
+    my_backbone._feature_hook_handle.remove()
     my_model = ClassificationModule(my_backbone, **cfg.training.optimizer)
     my_model.load_state_dict(torch.load(RESOURCE_PATH / f'{exp_name}.ckpt', map_location=device)['state_dict'])
     _ = my_model.to(device).eval()
