@@ -103,13 +103,14 @@ def interface_0_handler():
 
     output_stacked_neoplastic_lesion_likelihoods = []
 
-    for i in range(num_batchs):
-        batch_imgs = input_stacked_barretts_esophagus_endoscopy_images[i*batch_size: (i + 1)*batch_size]
-        batch_imgs = test_transform(image=batch_imgs)['image'].to(device)
+    for i in range(num_imgs):
+        # batch_imgs = input_stacked_barretts_esophagus_endoscopy_images[i*batch_size: (i + 1)*batch_size]
+        img =  input_stacked_barretts_esophagus_endoscopy_images[i]
+        batch_imgs = test_transform(image=img)['image'].to(device).unsqueeze(0)
         batch_logits = my_model(batch_imgs)
         batch_probs = torch.nn.functional.softmax(batch_logits, dim=1).detach().cpu()[:, 1].tolist()
         output_stacked_neoplastic_lesion_likelihoods.extend(batch_probs)
-
+        
     # Save your output
     write_json_file(
         location=OUTPUT_PATH / "stacked-neoplastic-lesion-likelihoods.json",
