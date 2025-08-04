@@ -53,9 +53,10 @@ class FocalLoss(nn.Module):
 
 
 class ContropyLoss(nn.Module):
-    def __init__(self, margin=0.0):
+    def __init__(self, margin=0.0, alpha=0.1):
         super(ContropyLoss, self).__init__()
         self.margin = margin
+        self.alpha = alpha
     
     def forward(self, logits: torch.Tensor, labels: torch.Tensor, features: torch.Tensor) -> torch.Tensor:
         cn_loss = F.cross_entropy(logits, labels)
@@ -73,4 +74,4 @@ class ContropyLoss(nn.Module):
         target = -1 * torch.ones_like(i_idx, dtype=torch.float).to(features.device)
         contrastive_loss = F.cosine_embedding_loss(x1, x2, target)
 
-        return cn_loss + contrastive_loss
+        return cn_loss + self.alpha * contrastive_loss

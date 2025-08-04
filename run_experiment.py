@@ -40,14 +40,16 @@ def run_experiment(cfg: DictConfig, logger=None):
             A.GaussianBlur(blur_limit=3, p=0.3),
         ], p=0.5),
         A.GridDropout(ratio=0.3, p=0.3),
-
-        A.Normalize(**cfg_preprocessing.get('normalize', {})),
+        # preprocessing
+        A.Normalize(**cfg_preprocessing.normalize),
         ToTensorV2()
     ])
 
     test_transform = A.Compose([
-        A.Resize(height=cfg_preprocessing.resize.size[0], width=cfg_preprocessing.resize.size[1]),
-        A.Normalize(**cfg_preprocessing.get('normalize', {})),
+        # preprocessing
+        A.Resize(height=cfg_preprocessing.resize.size[0], 
+                 width=cfg_preprocessing.resize.size[1]),
+        A.Normalize(**cfg_preprocessing.normalize),
         ToTensorV2()
     ])
 

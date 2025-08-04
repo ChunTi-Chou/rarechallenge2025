@@ -66,22 +66,26 @@ def interface_0_handler():
     import torch
     import torchvision.tv_tensors as TVT
     import torchvision.transforms.v2 as T2
+    import albumentations as A
+    from albumentations.pytorch import ToTensorV2
 
     from src.models import get_model, ClassificationModule
     
-    exp_name = 'swin_v2_t_rrcop_v2'
+    exp_name = 'swin_v2_t_album_v3'
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     device = 'cuda' if torch.cuda.is_available() else device
     
     print(exp_name, device)
     cfg = OmegaConf.load(RESOURCE_PATH / f'{exp_name}.yaml')
     # process the input
-    test_transform = T2.Compose([
-        # Normalization
-        T2.Resize(**cfg.dataset.preprocessing.resize),
-        T2.ToDtype(torch.float32, scale=True),
-        T2.Normalize(**cfg.dataset.preprocessing.normalize)
+    test_transform = A.Compose([
+        # preprocessing
+        A.Resize(height=cfg.dataset.preprocessing.resize.size[0], 
+                 width=cfg.dataset.preprocessing.resize.size[1]),
+        A.Normalize(**cfg.dataset.preprocessing.normalize),
+        ToTensorV2()
     ])
+    
 
     # load the model
     my_backbone = get_model(cfg.model.model_name, num_classes=cfg.model.model_args.num_classes, weights=None)
@@ -101,10 +105,9 @@ def interface_0_handler():
 
     for i in range(num_batchs):
         batch_imgs = input_stacked_barretts_esophagus_endoscopy_images[i*batch_size: (i + 1)*batch_size]
-        batch_imgs = TVT.Image(batch_imgs).permute(0, 3, 1, 2)
-        batch_imgs = test_transform(batch_imgs).to(device)
+        batch_imgs = test_transform(image=batch_imgs)['image'].to(device)
         batch_logits = my_model(batch_imgs)
-        batch_probs = torch.sigmoid(batch_logits).detach().to('cpu')[:, 1].tolist()
+        batch_probs = torch.nn.functional.softmax(batch_logits, dim=1).detach().cpu()[:, 1].tolist()
         output_stacked_neoplastic_lesion_likelihoods.extend(batch_probs)
 
     # Save your output
