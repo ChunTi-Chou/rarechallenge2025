@@ -64,10 +64,10 @@ def run_experiment(cfg: DictConfig, logger=None):
     # prepare model
     backbone = get_model(cfg.model.model_name, **cfg.model.model_args)
     model = ClassificationModule(backbone, 
-                                  lr=cfg.training.optimizer.lr, 
-                                  weight_decay=cfg.training.optimizer.weight_decay,
-                                  loss_name=cfg.model.loss_name,
-                                  loss_args=cfg.model.loss_args)
+                                 optimizer_name=cfg.training.optimizer_name,
+                                 optimizer_args=cfg.training.optimizer_args,
+                                 loss_name=cfg.model.loss_name,
+                                 loss_args=cfg.model.loss_args)
     
     # prepare training
     checkpoint_callback = ModelCheckpoint(monitor="val_auprc", mode='max', 

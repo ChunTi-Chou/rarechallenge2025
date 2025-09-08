@@ -3,7 +3,8 @@ devices: 1
 max_epochs: 200
 fast_dev_run: false
 
-optimizer_name: 'AdamW'
+optimizer_name: 'sam'
 optimizer_args:
-    lr: 0.002
-    weight_decay: 0.01
+    rho: 0.05
+    lr: 0.1
+    momentum: 0.9
