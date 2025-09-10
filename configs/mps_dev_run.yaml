@@ -11,6 +11,11 @@ model:
         weights: 'DEFAULT'
     loss_name: 'focal_loss'
     loss_args: {}
+    use_lora: true
+    lora:
+        r: 8
+        alpha: 32
+        dropout: 0.1
         
 
 # additional config

@@ -5,5 +5,5 @@ fast_dev_run: false
 
 optimizer_name: 'AdamW'
 optimizer_args:
-    lr: 0.002
+    lr: 0.00002
     weight_decay: 0.01

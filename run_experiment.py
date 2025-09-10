@@ -7,6 +7,7 @@ from albumentations.pytorch import ToTensorV2
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+from peft import LoraConfig, get_peft_model, TaskType
 
 from src.models import get_model, ClassificationModule
 from src.datasets import Rare25DataModule
@@ -63,6 +64,36 @@ def run_experiment(cfg: DictConfig, logger=None):
     
     # prepare model
     backbone = get_model(cfg.model.model_name, **cfg.model.model_args)
+    
+    # Apply LoRA if enabled in config
+    if cfg.model.get('use_lora', False):
+        # Determine target modules based on model architecture
+        # Only target LoRA-supported layers: Linear, Conv1d/2d/3d, Embedding, MultiheadAttention
+        model_name = cfg.model.model_name.lower()
+        if 'resnet' in model_name:
+            default_target_modules = ['layer1', 'layer2', 'layer3', 'layer4', 'fc']  # Residual layers + classifier
+        elif 'efficientnet' in model_name:
+            default_target_modules = ['conv', 'classifier']  # Conv layers + classifier
+        elif 'convnext' in model_name:
+            default_target_modules = ['downsample', 'classifier']  # Downsample layers + classifier
+        elif 'swin' in model_name:
+            default_target_modules = ['qkv', 'proj', 'mlp.fc1', 'mlp.fc2', 'head']  # Specific Linear layers in Swin
+        else:
+            # Fallback - only target commonly supported layer types
+            default_target_modules = ['conv', 'fc', 'classifier', 'head']
+        
+        lora_config = LoraConfig(
+            # task_type=TaskType.FEATURE_EXTRACTION,  # For image classification backbone
+            inference_mode=False,
+            r=cfg.model.lora.get('r', 8),  # LoRA rank
+            lora_alpha=cfg.model.lora.get('alpha', 32),  # LoRA alpha
+            lora_dropout=cfg.model.lora.get('dropout', 0.1),  # LoRA dropout
+            target_modules=cfg.model.lora.get('target_modules', default_target_modules),  # Model-specific target modules
+        )
+        backbone = get_peft_model(backbone, lora_config)
+        print(f"LoRA applied to {model_name} with target modules: {lora_config.target_modules}")
+        backbone.print_trainable_parameters()
+    
     model = ClassificationModule(backbone, 
                                  optimizer_name=cfg.training.optimizer_name,
                                  optimizer_args=cfg.training.optimizer_args,

@@ -32,5 +32,3 @@ training:
     devices: 1
     fast_dev_run: False
     max_epochs: 300
-    optimizer:
-        lr: 0.00002
