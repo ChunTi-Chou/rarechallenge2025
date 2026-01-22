@@ -11,10 +11,15 @@ model:
         weights: 'IMAGENET1K_V1'
     loss_name: 'cross_entropy'
     loss_args: {}
+    use_lora: false
+    lora:
+        r: 16
+        alpha: 32
+        dropout: 0.1
         
 # additional config
 run_name: 'convnext_small'
-lightning_log_dir: '../lightning-logs/rare25/baseline'
+lightning_log_dir: './lightning-logs/rare25/baseline'
 random_seed: 666
 
 # override config
@@ -32,5 +37,3 @@ training:
     devices: 1
     fast_dev_run: False
     max_epochs: 300
-    optimizer:
-        lr: 0.0002

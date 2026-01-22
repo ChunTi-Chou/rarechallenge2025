@@ -6,3 +6,5 @@
 # local folders
 lightning-logs
 outputs
+multirun
+resources_candidates

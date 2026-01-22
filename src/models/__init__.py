@@ -99,6 +99,8 @@ def get_model(model_name, num_classes=2, **kwargs):
         model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features, 
                                          out_features=num_classes, 
                                          bias=True)
+        model.features_buffer = []
+        model._feature_hook_handle = model.classifier[1].register_forward_hook(get_hook_fn(model))
         return model
 
     elif 'swin' in model_name:

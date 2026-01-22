@@ -5,7 +5,7 @@ defaults:
     - _self_
 
 model:
-    model_name: 'swin_v2_t'
+    model_name: 'swin_v2_b'
     model_args:
         num_classes: 2
         weights: 'IMAGENET1K_V1'
@@ -13,13 +13,13 @@ model:
     loss_args: {alpha: 0.01}
     use_lora: true
     lora:
-        r: 8
+        r: 16
         alpha: 32
         dropout: 0.1
 
 # additional config
-run_name: 'swin_v2'
-lightning_log_dir: './lightning-logs/rare25/baseline'
+run_name: 'swin_big_lora'
+lightning_log_dir: './lightning-logs/rare25/LoRA'
 random_seed: 666
 
 # override config

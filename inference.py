@@ -60,18 +60,16 @@ def interface_0_handler():
 
     """ Run your model here """
     # for demonstration we will use the timm classification model from the model directory
-    from pathlib import Path
     from omegaconf import OmegaConf
 
     import torch
-    import torchvision.tv_tensors as TVT
-    import torchvision.transforms.v2 as T2
+    from peft import LoraConfig, get_peft_model
     import albumentations as A
     from albumentations.pytorch import ToTensorV2
 
     from src.models import get_model, ClassificationModule
     
-    exp_name = 'swin_v2_t_album_v3'
+    exp_name = 'swin_big_lora'
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     device = 'cuda' if torch.cuda.is_available() else device
     
@@ -90,7 +88,45 @@ def interface_0_handler():
     # load the model
     my_backbone = get_model(cfg.model.model_name, num_classes=cfg.model.model_args.num_classes, weights=None)
     my_backbone._feature_hook_handle.remove()
-    my_model = ClassificationModule(my_backbone, **cfg.training.optimizer)
+    if cfg.model.get('use_lora', False):
+        # Determine target modules based on model architecture
+        # Only target LoRA-supported layers: Linear, Conv1d/2d/3d, Embedding, MultiheadAttention
+        model_name = cfg.model.model_name.lower()
+        if 'convnext' in model_name:
+            modules_to_save = ['classifier']
+            target_module_names = []
+            for name, module in backbone.named_modules():
+                # We target Linear layers that are inside the 'features.7' block
+                if 'features.7' in name and isinstance(module, torch.nn.Linear):
+                    target_module_names.append(name)
+        elif 'swin' in model_name:
+            modules_to_save = ['head']
+            target_module_names = []
+            for name, module in my_backbone.named_modules():
+                # We target Linear layers that are inside the 'features.7' block
+                if '.mlp.' in name and isinstance(module, torch.nn.Linear):
+                    target_module_names.append(name)
+                elif name.endswith(('qkv', 'proj')) and isinstance(module, torch.nn.Linear):
+                    target_module_names.append(name)
+        else:
+            assert False, f"LoRA not yet supported for {model_name}"
+        
+        lora_config = LoraConfig(
+            # task_type=TaskType.FEATURE_EXTRACTION,  # For image classification backbone
+            inference_mode=True,
+            r=cfg.model.lora.get('r', 16),  # LoRA rank
+            lora_alpha=cfg.model.lora.get('alpha', 32),  # LoRA alpha
+            lora_dropout=cfg.model.lora.get('dropout', 0.),  # LoRA dropout
+            target_modules=target_module_names,  # Model-specific target modules
+            modules_to_save=modules_to_save
+        )
+        my_backbone = get_peft_model(my_backbone, lora_config)
+        print(f"LoRA applied to {model_name} with target modules: {lora_config.target_modules}")
+        my_backbone.print_trainable_parameters()
+    
+    my_model = ClassificationModule(my_backbone, 
+                                    optimizer_name=cfg.training.optimizer_name, optimizer_args=cfg.training.optimizer_args,
+                                    loss_name=cfg.model.loss_name, loss_args=cfg.model.loss_args)
     my_model.load_state_dict(torch.load(RESOURCE_PATH / f'{exp_name}.ckpt', map_location=device)['state_dict'])
     _ = my_model.to(device).eval()
 
