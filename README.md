@@ -1,6 +1,6 @@
 # RARE 2025 Challenge - MICCAI
 
-This repository contains the codebase for the [RARE 2025 Challenge](https://rare2025.grand-challenge.org/) (MICCAI) participation. The project is focused on the classification of endoscopic images, specifically targeting Barrett's Esophagus.
+This repository contains the codebase for the [RARE 2025 Challenge](https://rare25.grand-challenge.org/) (MICCAI) participation. The project is focused on the classification of endoscopic images, specifically targeting Barrett's Esophagus.
 
 ## Project Overview
 
